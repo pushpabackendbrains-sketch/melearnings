@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dynamic Nested Accordion UI</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      padding: 24px;
+      background-color: #f8f9fa;
+      font-family: Arial, sans-serif;
+    }
+    .card {
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      padding: 24px;
+      background-color: white;
+      border-radius: 8px;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    @media (max-width: 900px) {
+      .form-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    @media (max-width: 520px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .list-scroll {
+      max-height: 420px;
+      overflow: auto;
+    }.sub-detail {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease-in-out, padding 0.3s ease-in-out;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  opacity: 0.6;
+}
+
+.sub-detail.expanded {
+  max-height: 200px; /* Adjust depending on expected height */
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}.product-body {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.6s ease-in-out, padding 0.6s ease-in-out;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  opacity: 0.8;
+}
+
+.product-body.expanded {
+  max-height: 600px; /* Adjust based on expected size */
+  padding-top: 8px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+}
+
+
+  </style>
+</head>
+<body>
+
+  <!-- Form Card -->
+  <div class="card">
+    <div class="section-title mb-4">
+      <h3 class="fw-bold border-bottom pb-2">BackendOpsTool</h3>
+      <!-- <p class="text-muted small">Please .</p> -->
+    </div>
+
+    <form id="dynamicForm">
+      <div class="form-grid mb-3">
+        <!-- Country -->
+        <div>
+          <label for="country" class="form-label">Country</label>
+          <select class="form-select" id="country">
+            <option value="">Select Country</option>
+          </select>
+        </div>
+
+        <!-- City -->
+        <div id="cityContainer" class="d-none">
+          <label for="deviceType" class="form-label">Device Type</label>
+          <select class="form-select" id="deviceType">
+            <option value="">Select Device Type</option>
+          </select>
+        </div>
+
+        <!-- App Type -->
+        <div id="appTypeContainer" class="d-none">
+          <label for="storeId" class="form-label">App Type</label>
+          <select class="form-select" id="storeId">
+            <option value="">Select Store</option>
+          </select>
+        </div>
+
+        <!-- User Input -->
+        <div id="userInputContainer" class="d-none">
+          <label for="userInput" class="form-label">Enter SKU</label>
+          <input type="text" class="form-control" id="userInput" placeholder="Your input here" />
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-primary d-none" id="submitButton">Submit</button>
+    </form>
+  </div>
+
+  <!-- Submitted Entries Section -->
+  <div id="entriesSection" class="mt-4 card d-none">
+    <h5>Submitted Entries</h5>
+    <div class="accordion" id="entriesAccordion"></div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Utility to create accordion items easily
+    function createAccordionItem(id, headerText, parentId) {
+      return `
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="heading-${id}">
+            <button class="accordion-button collapsed" type="button"
+              data-bs-toggle="collapse" data-bs-target="#collapse-${id}"
+              aria-expanded="false" aria-controls="collapse-${id}">
+              ${headerText}
+            </button>
+          </h2>
+          <div id="collapse-${id}" class="accordion-collapse collapse"
+               aria-labelledby="heading-${id}" data-bs-parent="#${parentId}">
+            <div class="accordion-body" id="body-${id}">
+              Loading...
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function fetchCountries() {
+      // Replace with your actual API call
+      // Simulated example response:
+      const countryRes = await fetch('/countries');
+      const countries = await countryRes.json();
+
+
+      const countrySelect = document.getElementById('country');
+      countries.forEach(country => {
+        const option = document.createElement('option');
+        option.value = country.country_name;
+        option.textContent = `${country.country_name} (${country.language_name})`;
+        countrySelect.appendChild(option);
+      });
+    }
+
+  async function fetchStores(country) {
+     const storeList =await fetch('/get-client-configs')
+      return storeList;
+    }
+
+    async function fetchAppTypes() {
+      return ["Web", "Mobile", "Desktop"];
+    }
+
+    // Mock API for fetching products by userInput
+    async function fetchProducts(userInput) {
+      // Simulated data
+      return [
+        { id: "p1", name: `Product A for ${userInput}` },
+        { id: "p2", name: `Product B for ${userInput}` },
+      ];
+    }
+
+    // Mock API for fetching product details by productId
+    async function fetchProductDetails(productId) {
+      // Simulated data, details have detailName, value, and an id for deeper info
+      if (productId === "p1") {
+        return [
+          { detailId: "d1", detailName: "Color", value: "Red" },
+          { detailId: "d2", detailName: "Size", value: "Medium" }
+        ];
+      } else if (productId === "p2") {
+        return [
+          { detailId: "d3", detailName: "Weight", value: "1.5kg" },
+          { detailId: "d4", detailName: "Material", value: "Plastic" }
+        ];
+      } else {
+        return [];
+      }
+    }
+
+    // Mock API for fetching more info about detailId
+    async function fetchDetailMoreInfo(detailId) {
+      const moreInfoMap = {
+        "d1": { "Shade": "Dark Red", "Finish": "Matte" },
+        "d2": { "Height": "10cm", "Width": "5cm" },
+        "d3": { "Max Load": "5kg", "Warranty": "2 years" },
+        "d4": { "Recyclable": "Yes", "Origin": "USA" }
+      };
+      // Simulate network delay
+      await new Promise(r => setTimeout(r, 300));
+      return moreInfoMap[detailId] || {};
+    }
+
+    document.getElementById('country').addEventListener('change', async function () {
+      const selectedCountry = this.value;
+      const citySelect = document.getElementById('deviceType');
+      const cityContainer = document.getElementById('cityContainer');
+      const appTypeContainer = document.getElementById('appTypeContainer');
+      const userInputContainer = document.getElementById('userInputContainer');
+      const submitButton = document.getElementById('submitButton');
+
+      // Reset downstream fields
+      citySelect.innerHTML = '<option value="">Select Device Type</option>';
+      cityContainer.classList.add('d-none');
+      appTypeContainer.classList.add('d-none');
+      userInputContainer.classList.add('d-none');
+      submitButton.classList.add('d-none');
+
+      if (selectedCountry) {
+        const cities = await fetchStores(selectedCountry);
+        cities.forEach(city => {
+          const option = document.createElement('option');
+          option.value = city;
+          option.textContent = city;
+          citySelect.appendChild(option);
+        });
+        cityContainer.classList.remove('d-none');
+      }
+    });
+
+    document.getElementById('deviceType').addEventListener('change', async function () {
+      const selectedCity = this.value;
+      const appTypeSelect = document.getElementById('storeId');
+      const appTypeContainer = document.getElementById('appTypeContainer');
+      const userInputContainer = document.getElementById('userInputContainer');
+      const submitButton = document.getElementById('submitButton');
+
+      // Reset downstream fields
+      appTypeSelect.innerHTML = '<option value="">Select Store </option>';
+      appTypeContainer.classList.add('d-none');
+      userInputContainer.classList.add('d-none');
+      submitButton.classList.add('d-none');
+
+      if (selectedCity) {
+        const appTypes = await fetchAppTypes();
+        appTypes.forEach(type => {
+          const option = document.createElement('option');
+          option.value = type;
+          option.textContent = type;
+          appTypeSelect.appendChild(option);
+        });
+        appTypeContainer.classList.remove('d-none');
+      }
+    });
+
+    document.getElementById('storeId').addEventListener('change', function () {
+      if (this.value) {
+        document.getElementById('userInputContainer').classList.remove('d-none');
+        document.getElementById('submitButton').classList.remove('d-none');
+      } else {
+        document.getElementById('userInputContainer').classList.add('d-none');
+        document.getElementById('submitButton').classList.add('d-none');
+      }
+    });
+
+    // Handle click on a detail item to show more info
+    // async function onDetailClick2(detailId, detailBodyId) {
+    //   const bodyDiv = document.getElementById(detailBodyId);
+    //   if (!bodyDiv.dataset.loaded) {
+    //     bodyDiv.innerHTML = 'Loading more details...';
+    //     const moreInfo = await fetchDetailMoreInfo(detailId);
+    //     bodyDiv.innerHTML = '';
+
+    //     if (!moreInfo || Object.keys(moreInfo).length === 0) {
+    //       bodyDiv.textContent = 'No further details.';
+    //       bodyDiv.dataset.loaded = 'true';
+    //       return;
+    //     }
+
+    //     const ul = document.createElement('ul');
+    //     ul.className = 'list-group';
+    //     Object.entries(moreInfo).forEach(([key, value]) => {
+    //       const li = document.createElement('li');
+    //       li.className = 'list-group-item';
+    //       li.textContent = `${key}: ${value}`;
+    //       ul.appendChild(li);
+    //     });
+    //     bodyDiv.appendChild(ul);
+    //     bodyDiv.dataset.loaded = 'true';
+    //   }
+    // }
+   
+    async function onDetailClick(detailId, detailBodyId) {
+      const bodyDiv = document.getElementById(detailBodyId);
+      if (bodyDiv.dataset.loaded) return;
+
+      bodyDiv.innerHTML = 'Loading more details...';
+      const moreInfo = await fetchDetailMoreInfo(detailId);
+      bodyDiv.innerHTML = '';
+
+      if (!moreInfo || Object.keys(moreInfo).length === 0) {
+        bodyDiv.textContent = 'No further details.';
+        bodyDiv.dataset.loaded = 'true';
+        return;
+      }
+
+      const ul = document.createElement('ul');
+      ul.className = 'list-group list-group-flush';
+      Object.entries(moreInfo).forEach(([key, value]) => {
+        const li = document.createElement('li');
+        li.className = 'list-group-item';
+        li.textContent = `${key}: ${value}`;
+        ul.appendChild(li);
+      });
+
+      bodyDiv.appendChild(ul);
+      bodyDiv.dataset.loaded = 'true';
+    }
+
+
+    // Handle click on product to show product details in nested accordion
+
+    async function onProductClick(productId, productBodyId) {
+  const bodyDiv = document.getElementById(productBodyId);
+  if (bodyDiv.dataset.loaded) return;
+
+  bodyDiv.innerHTML = 'Loading...';
+  const details = await fetchProductDetails(productId);
+  bodyDiv.innerHTML = '';
+
+  if (!details.length) {
+    bodyDiv.textContent = 'No details available.';
+    return;
+  }
+
+  details.forEach((detail, idx) => {
+    const detailContainer = document.createElement('div');
+    detailContainer.className = 'mb-1';
+
+    const detailText = document.createElement('div');
+    detailText.textContent = `${detail.detailName}: ${detail.value}`;
+    detailText.style.cursor = 'pointer';
+    detailText.classList.add('text-secondary', 'ms-2');
+  
+    detailText.addEventListener('click', () => {
+      const modalBody = document.getElementById('detailModalBody');
+      const modalTitle = document.getElementById('detailModalLabel');
+
+      modalTitle.textContent = detail.detailName;
+      modalBody.textContent = detail.value;
+
+      const modal = new bootstrap.Modal(document.getElementById('detailModal'));
+      modal.show();
+    });
+  
+    detailContainer.appendChild(detailText);
+    bodyDiv.appendChild(detailContainer);
+  });
+
+  bodyDiv.dataset.loaded = 'true';
+}
+
+    async function onProductClick2(productId, productBodyId) {
+      const bodyDiv = document.getElementById(productBodyId);
+      if (bodyDiv.dataset.loaded) return;
+
+      bodyDiv.innerHTML = 'Loading...';
+      const details = await fetchProductDetails(productId);
+      bodyDiv.innerHTML = '';
+
+      if (!details.length) {
+        bodyDiv.textContent = 'No details available.';
+        return;
+      }
+
+      details.forEach((detail, idx) => {
+        const detailContainer = document.createElement('div');
+        detailContainer.className = 'mb-1';
+
+        const detailText = document.createElement('div');
+        detailText.textContent = `${detail.detailName}: ${detail.value}`;
+        detailText.style.cursor = 'pointer';
+        detailText.classList.add('text-secondary', 'ms-2');
+        detailText.addEventListener('click', () => {
+          const subDiv = document.getElementById(`${productBodyId}-detail-${idx}`);
+          subDiv.style.display = subDiv.style.display === 'none' ? 'block' : 'none';
+        //   if (!subDiv.dataset.loaded) {
+        //     subDiv.style.display = 'block';
+        //     onDetailClick(detail.detailId, subDiv.id);
+        //   } else {
+        //     subDiv.style.display = subDiv.style.display === 'none' ? 'block' : 'none';
+        //   }
+        });
+
+        const subDetailDiv = document.createElement('div');
+        subDetailDiv.id = `${productBodyId}-detail-${idx}`;
+        subDetailDiv.style.display = 'none';
+        subDetailDiv.className = 'ms-4 small text-muted';
+        subDetailDiv.dataset.loaded = '';
+
+        detailContainer.appendChild(detailText);
+        detailContainer.appendChild(subDetailDiv);
+        bodyDiv.appendChild(detailContainer);
+      });
+
+      bodyDiv.dataset.loaded = 'true';
+    }
+
+  
+    async function onEntryClick(entryId, userInput) {
+      const prodAccId = `products-accordion-${entryId}`;
+      let prodAccordion = document.getElementById(prodAccId);
+
+      if (!prodAccordion) {
+        const entryBody = document.getElementById(`body-${entryId}`);
+        entryBody.innerHTML = `
+          <div class="accordion" id="${prodAccId}">
+            <div class="text-muted">Loading products...</div>
+          </div>
+        `;
+        prodAccordion = document.getElementById(prodAccId);
+
+        const products = await fetchProducts(userInput);
+
+        if (products.length === 0) {
+          prodAccordion.innerHTML = '<div>No products found.</div>';
+          return;
+        }
+
+        prodAccordion.innerHTML = ''; // Clear loading
+        products.forEach((product, idx) => {
+  const prodId = `${entryId}-prod-${idx}`;
+  const productContainer = document.createElement('div');
+  productContainer.className = 'mb-2';
+
+  // Product name (clickable text)
+  const productHeader = document.createElement('div');
+  productHeader.textContent = product.name;
+  productHeader.style.cursor = 'pointer';
+  productHeader.style.fontWeight = 'bold';
+  productHeader.classList.add('text-primary');
+  
+  productHeader.addEventListener('click', () => {
+    const body = document.getElementById(`prod-body-${prodId}`);
+
+    if (!body.dataset.loaded) {
+      onProductClick(product.id, body.id);
+      body.classList.add('expanded');
+    } else {
+      body.classList.toggle('expanded');
+    }
+  });
+
+  // Product details container (animated)
+  const productBody = document.createElement('div');
+  productBody.id = `prod-body-${prodId}`;
+  productBody.className = 'product-body ms-3';
+  productBody.dataset.loaded = '';
+
+  productContainer.appendChild(productHeader);
+  productContainer.appendChild(productBody);
+  prodAccordion.appendChild(productContainer);
+});
+
+
+     
+      }
+    }
+
+    // Store all entries submitted for ID uniqueness
+    let entriesCounter = 0;
+
+    document.getElementById('submitButton').addEventListener('click', function () {
+      const country = document.getElementById('country').value;
+      const city = document.getElementById('city').value;
+      const storeId = document.getElementById('storeId').value;
+      const userInput = document.getElementById('userInput').value.trim();
+
+      if (!country || !city || !storeId || !userInput) {
+        alert('Please select all fields and enter data.');
+        return;
+      }
+
+      entriesCounter++;
+      const entryId = `entry-${entriesCounter}`;
+      const entriesAccordion = document.getElementById('entriesAccordion');
+
+      // Create entry accordion item HTML
+      entriesAccordion.innerHTML += createAccordionItem(entryId, `Country: ${country}, City: ${city}, App Type: ${storeId}, Input: ${userInput}`, 'entriesAccordion');
+
+      // Show entries section
+      document.getElementById('entriesSection').classList.remove('d-none');
+
+      // Add click event to entry header button to load products
+      const entryHeaderBtn = document.querySelector(`#heading-${entryId} button`);
+      entryHeaderBtn.addEventListener('click', () => onEntryClick(entryId, userInput));
+
+      // Clear input field after submit
+      document.getElementById('userInput').value = '';
+    });
+
+    // Initial population of countries dropdown
+    fetchCountries();
+  </script>
+
+
+
+<!-- Bootstrap Modal -->
+<div class="modal fade" id="detailModal" tabindex="-1" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="detailModalLabel">Detail Info</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body" id="detailModalBody">
+          <!-- Detail content will be injected here -->
+        </div>
+      </div>
+    </div>
+  </div>
+  
+
+</body>
+</html>

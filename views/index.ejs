@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Products</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="container mt-5">
+  <h1 class="mb-3">Product List</h1>
+
+  <form method="GET" action="/mybucket/" class="mb-4">
+    <div class="input-group">
+      <input type="text" name="q" class="form-control" placeholder="Search..." value="<%= searchQuery || '' %>">
+      <button class="btn btn-outline-secondary">Search</button>
+    </div>
+  </form>
+
+  <a href="/create" class="btn btn-primary mb-4">Add Product</a>
+
+  <div class="row">
+    <% products.forEach(product => { %>
+      <div class="col-md-4 mb-3">
+        <div class="card">
+          <div class="card-body">
+            <h5><%= product.name %></h5>
+            <p>Price: $<%= product.price %></p>
+            <p><%= product.description %></p>
+            <a href="/edit/<%= product._id %>" class="btn btn-secondary">Edit</a>
+          </div>
+        </div>
+      </div>
+    <% }) %>
+  </div>
+</body>
+</html>

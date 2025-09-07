@@ -1,0 +1,27 @@
+{
+  "name": "product_search_s3",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [],
+  "license": "ISC",
+  "author": "Pushpa",
+  "type": "commonjs",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.873.0",
+    "@aws-sdk/lib-storage": "^3.873.0",
+    "@aws-sdk/s3-request-presigner": "^3.873.0",
+    "body-parser": "^2.2.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.1",
+    "ejs": "^3.1.10",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.18.0",
+    "multer": "^2.0.2",
+    "uuid": "^11.1.0"
+  }
+}
